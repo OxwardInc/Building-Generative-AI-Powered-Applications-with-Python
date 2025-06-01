@@ -3,6 +3,7 @@ from PIL import Image
 from io import BytesIO
 from bs4 import BeautifulSoup
 from transformers import AutoProcessor, BlipForConditionalGeneration
+from urllib.parse import urljoin
 
 # Load the pretrained processor and model
 processor = AutoProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
@@ -12,43 +13,58 @@ model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-capt
 url = "https://en.wikipedia.org/wiki/IBM"
 headers = {"User-Agent": "Mozilla/5.0"}
 
-# Download and parse the page
+# Download the page
 response = requests.get(url, headers=headers, timeout=10)
+# Parse the page with BeautifulSoup
 soup = BeautifulSoup(response.text, 'html.parser')
+
+# Find all img elements
 img_elements = soup.find_all('img')
 
+# Open a file to write the captions
 seen = set()
 with open("captions.txt", "w", encoding="utf-8") as caption_file:
-    for img_element in img_elements:
-        img_url = img_element.get('src') or img_element.get('data-src')
+    # Iterate over each img element
+    for img in img_elements:
+        img_url = (
+            img.get("src")
+            or img.get("data-src")
+            or img.get("data-lazy")
+            or img.get("srcset")
+        )
         if not img_url:
             continue
 
+        # Skip if the image is an SVG or too small (likely an icon)
         if 'svg' in img_url or '1x1' in img_url:
             continue
 
-        if img_url.startswith('//'):
-            img_url = 'https:' + img_url
-        elif not img_url.startswith('http://') and not img_url.startswith('https://'):
-            continue
+         # Correct the URL if it's malformed
+        img_url = urljoin(url, img_url)
 
         if img_url in seen:
             continue
         seen.add(img_url)
 
         try:
+            # Download the image
             print(f"Processing: {img_url}")
-            response = requests.get(img_url, headers=headers, timeout=10)
-            raw_image = Image.open(BytesIO(response.content)).convert("RGB")
+            img_resp = requests.get(img_url, headers=headers, timeout=10)
+            # Convert the image data to a PIL Image
+            raw_image = Image.open(BytesIO(img_resp.content)).convert("RGB")
+
             if raw_image.size[0] * raw_image.size[1] < 400:
                 continue
 
+            # Process the image
             inputs = processor(raw_image, return_tensors="pt")
+            # Generate a caption for the image
             out = model.generate(**inputs, max_new_tokens=50)
+            # Decode the generated tokens to text
             caption = processor.decode(out[0], skip_special_tokens=True)
 
+            # Write the caption to the file, prepended by the image URL
             caption_file.write(f"{img_url}: {caption}\n")
             raw_image.close()
         except Exception as e:
             print(f"Error processing {img_url}: {e}")
-            continue
