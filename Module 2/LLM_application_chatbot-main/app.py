@@ -34,6 +34,9 @@ def handle_prompt():
     conversation_history.append(response)
 
     return response
+@app.route('/', methods=['GET'])
+def home():
+    return render_template('index.html')
 
 if __name__ == '__main__':
     app.run()
