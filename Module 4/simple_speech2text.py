@@ -7,7 +7,7 @@ url = "https://cf-courses-data.s3.us.cloud-object-storage.appdomain.cloud/IBMSki
 response = requests.get(url)
 
 # Define the local file path where the audio file will be saved
-audio_file_path = 'audio/downloaded_audio.mp3'
+audio_file_path = 'downloaded_audio.mp3'
 
 # Check if the request was succesful (status code 200)
 if response.status_code == 200:
