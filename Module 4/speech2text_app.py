@@ -25,4 +25,4 @@ iface = gr.Interface(fn=transcript_audio,
                      description="Upload the audio file")
 
 # Launch the Gradio app
-iface.launch(server_name="0.0.0.0", server_port=7860)
+iface.launch(server_name="localhost", server_port=7860)
