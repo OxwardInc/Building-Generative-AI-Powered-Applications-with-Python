@@ -117,6 +117,22 @@ def process_prompt(prompt):
 
     return answer
 
+# Function to initialize the language model and its embeddings
+def init_llm():
+    global llm_hub, embeddings
+    # Set up the environment variable for HuggingFace and initialize the desired model.
+    os.environ["HUGGINGFACEHUB_API_TOKEN"] = env("HUGGINGFACEHUB_API_TOKEN")
+
+    # repo name for the model
+    model_id = "mistralai/Mistral-7B-Instruct-v0.3"
+    # load the model into the HuggingFaceHub
+    llm_hub = HuggingFaceHub(repo_id=model_id, model_kwargs={"temperature": 0.1, "max_new_tokens": 600, "max_length": 600})
+
+    #Initialize embeddings using a pre-trained model to represent the text data.
+    embeddings = HuggingFaceInstructEmbeddings(
+        model_name="sentence-transformers/all-MiniLM-L6-v2", model_kwargs={"device": DEVICE}
+    )
+
 # Init
 init_llm()
 logger.info("LLM and embeddings initialization complete.")
